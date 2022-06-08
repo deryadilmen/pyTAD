@@ -17,7 +17,7 @@ To test the calculation procedure you can use the following command:
  Suppose that you have to analyse the tide gauge from the GLOSS Sea Level Facility,  you can use this command below, using as parameter  code  the value of the code from this list:
   https://www.ioc-sealevelmonitoring.org/list.php 
   
-  If you want to analyse Ierapetra, in Greece, the code is <b>apfl</b>.  Any available signal in the list above can be used.
+  If you want to analyse Ierapetra, in Greece, the code is <b>iera</b>.  Any available signal in the list above can be used.
   
   <code>
    python3 scrape.py -code  iera  -n300 200  -n30 50  -mult 4  -add 0.1  -th 0.08 -mode GLOSS  -out ./temp/iera
