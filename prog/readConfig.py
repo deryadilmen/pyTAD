@@ -374,23 +374,26 @@ def virtualConfig(arguments):
         if arguments[j]=='-out':
                 outFolder=arguments[j+1]
    #  example of call  python3 scrape.py -idDevice adak -code  adak  -n300 150  -n30 15  -mult 4  -add 0.1  -th 0.08 -mode GLOSS -out e:/temp
+
+    if IDdevice=='':  IDdevice=code
+    config['IDdevice']=IDdevice
+    config['Interval'] = -1
+    config['n300']=n300
+    config['n30']=n30
+    config['threshold']=th
+    config['ratioRMS']= mult
+    config['AddRMS']=addRMS
+    config['SaveURL']=''
+    config['AlertURL']=''
+    config['AlertLevel']=2
+    config['outFolder']=outFolder
     if mode=='GLOSS':
-        if IDdevice=='':  IDdevice=code
-        config['IDdevice']=IDdevice
-        config['Interval'] = -1
-        config['n300']=n300
-        config['n30']=n30
-        config['threshold']=th
-        config['ratioRMS']= mult
-        config['AddRMS']=addRMS
-        config['SaveURL']=''
-        config['AlertURL']=''
-        config['AlertLevel']=2
-        config['outFolder']=outFolder
         config['serverAddress']='https://www.ioc-sealevelmonitoring.org/service.php?query=data&format=xml&code='+code+'&period=7'
-        if not os.path.exists(outFolder):
-            os.makedirs(outFolder)
-        with open(outFolder+os.sep+'config.txt','w') as f:
-            for key in config.keys():
-                f.write(key+'='+format(config[key])+'\n')
+    elif mode=='NOAA':
+        config['serverAddress']='https://tidesandcurrents.noaa.gov/api/datagetter?product$EQwater_level&application$EQNOS.COOPS.TAC.WL&begin_date$EQ$BEGINDATE&end_date$EQ$ENDDATE&datum$EQMSL&station$EQ'+code+'&time_zone$EQGMT&units$EQmetric&format$EQjson'        
+    if not os.path.exists(outFolder):
+        os.makedirs(outFolder)
+    with open(outFolder+os.sep+'config.txt','w') as f:
+        for key in config.keys():
+            f.write(key+'='+format(config[key])+'\n')
     return config

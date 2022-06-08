@@ -96,6 +96,7 @@ def init_push(config,queueMQTT,adcData,folderOut):
             with ('/tmp/stopping_MQTT.txt', 'a') as f:
                   f.write(e)
             os.kill(os.getpid(), 9)
+
      
 
 def init_listen(config,queueData,adcData,folderOut,proxy='',debug=False):   
@@ -273,7 +274,6 @@ def init_listen_Multi(config,wgetData,folderOut,proxy='',debug=False):
             else:
                 print('discarded '+received_msg)
 
-
         client.on_connect = on_connect
         client.on_message = on_message
         if proxy !='':
@@ -341,6 +341,7 @@ def init_listen_Multi(config,wgetData,folderOut,proxy='',debug=False):
                 except Exception as e:
                     print(e)
            time.sleep(.2)
+
            
 if __name__ == "__main__":
     arguments = sys.argv[1:]

@@ -101,8 +101,7 @@ def scrape_init(config,wgetData,folderOut):
     else:
         login_url=sl
     while True:
-        login_ref=login_url #"http://202.90.199.202/tntmon/login.php"
-        #login_url="http://202.90.199.202/tntmon/loginauth.php"
+        login_ref=login_url 
         result = session_requests.get(login_url)
 
         result = session_requests.post(
@@ -127,10 +126,8 @@ def scrape_init(config,wgetData,folderOut):
             t1=datetime.utcnow()
             tstart=t0.strftime('%Y-%m-%d %H:%M:%S')
             tend=t1.strftime('%Y-%m-%d %H:%M:%S')
-            # Example: url="http://202.90.199.202/tntmon/datasvc.php?net=WL&sta=''+station+'&starttm=2022-05-02%2005:12:19&endtm=2022-05-03%2005:12:19"
-            #url="http://202.90.199.202/tntmon/datasvc.php?net=WL&sta=AWSSTA1016&starttm=2022-05-02%2005:12:19&endtm=2022-05-03%2005:12:19"
 
-            url=config['scrapePage']  #'http://202.90.199.202/tntmon/datasvc.php?net=WL&sta='+station+'&starttm='+ tstart+'&endtm='+tend
+            url=config['scrapePage'] 
             url=url.replace('$DATESTART',tstart)
             url=url.replace('$DATEEND',tend)
             url=url.replace('$EQ','=')
@@ -220,9 +217,63 @@ def scrape_TCP(config,queueData,folderOut):
                     break
         time.sleep(1)       
 
+def saveSamples(config,calg,data,ncols,folderConfig):
+    from  process import addMeasure,readBuffer,saveBuffer
+    logData=''
+    kj=-1
+    for tim,samp in data:
+        logDataAdd=''
+        for k in range(ncols):
+            if ncols>1:
+                measure_Float=samp[k]
+            else:
+                measure_Float=samp
+            try:
+                forecast30,forecast300,rms,alertSignal,alertValue= calg[k].addMeasure(tim,measure_Float,folderConfig,k)
+                checkAlerts(config ,tim, measure_Float, alertSignal,folderConfig)
+                logDataAdd = calg[k].prepareString(k,config, tim, measure_Float,forecast30,forecast300,rms,alertSignal,alertValue, logDataAdd)
+                saveBuffer(calg[k]._x300,calg[k]._y300,calg[k]._yavg30,calg[k]._yavg300,folderConfig,k)
+            except Exception as e:
+                print(e)
+        logDataAdd=logDataAdd.replace('$V1','')
+        logDataAdd=logDataAdd.replace('$V2','')
+        logDataAdd=logDataAdd.replace('$V3','')
+        logData += logDataAdd +'\n'
+        print('.......'+logDataAdd[:80])
+        fname=folderOut+os.sep+'execLog_'+datetime.strftime(tim,'%Y-%m-%d')+'.txt'
+        with open(fname,'a') as f1:
+            f1.write(logDataAdd+'\n')
+
+        with open(folderOut+os.sep+'lastRead.txt','w') as f1:
+            f1.write(datetime.strftime(tim,'%Y-%m-%d %HH:%MM:%SS'))
+        oldDat = tim
+        oldvalue = measure_Float
+        newData = True
+
+        #File.WriteAllText("lastValue.txt", Format(tim, "dd MMM yyyy HH:mm") & ", " & Format(value, "#0.00"))
+        kj+=1
+       
+        if (int(kj / 100) * 100 == kj or kj==len(data)-1) and config['SaveURL'] !='':
+            URL = config['SaveURL'].split( "log=")[0]+"log=" + logData
+            URL = URL.replace("$IDdevice", config['IDdevice'])
+            param = URL.split("?")[1]
+            params={}
+            for keyvalue in param.split('&'):
+                key,value=keyvalue.split('=')
+                params[key]=value
+            URL = URL.split("?")[0]
+            data = urllib.parse.urlencode(params).encode("utf-8")
+            req = urllib.request.Request(URL)
+            with urllib.request.urlopen(req,data=data) as f:
+                resp = f.read()
+            kj=0
+            logData=''
+            newData=False
+    
+
 def scrape_BIG_INA(config,wgetData,folderOut):
     from CONF import folderConfig
-    from  process import addMeasure,readBuffer,saveBuffer
+    from  process import readBuffer
     from calcAlgorithm import calcAlgorithm as ca
     settings=readConfig('',folderConfig+os.sep+config['settingsFile'])
     
@@ -244,65 +295,26 @@ def scrape_BIG_INA(config,wgetData,folderOut):
 
     kj=0
     logData = ""
+    data=[]
     for line0 in lines[3:]:
         line = line0.replace( "<td>", "")
         if line.strip() != "":
             p = line.split( "</td>")
             tim = datetime.strptime(p[1],'%Y-%m-%d %H:%M:%S')
             print(tim,calg[1]._LastDateTimeAcquired)
+
             if tim > calg[1]._LastDateTimeAcquired:
-                logDataAdd=''
-                
+                samp=[]
                 for k in range(ncols):
                     try:
                         measure_Float = float(p[k +2])
-                        forecast30,forecast300,rms,alertSignal,alertValue= calg[k].addMeasure(tim,measure_Float,folderConfig,k)
-                        checkAlerts(settings ,tim, measure_Float, alertSignal,folderConfig)
-                        logDataAdd = calg[k].prepareString(k,config, tim, measure_Float,forecast30,forecast300,rms,alertSignal,alertValue, logDataAdd)
-                        saveBuffer(calg[k]._x300,calg[k]._y300,calg[k]._yavg30,calg[k]._yavg300,folderConfig,k)
                     except Exception as e:
-                        print(e)
-                logDataAdd=logDataAdd.replace('$V1','')
-                logDataAdd=logDataAdd.replace('$V2','')
-                logDataAdd=logDataAdd.replace('$V3','')
-                logData += logDataAdd +'\n'
-                print(logDataAdd[1:80])
-                oldDat = tim
-                oldvalue = measure_Float
-                newdata = True
+                            print(e)
+                    samp.append(measureFloat)
+                data.append((tim,samp))
 
-                #File.WriteAllText("lastValue.txt", Format(tim, "dd MMM yyyy HH:mm") & ", " & Format(value, "#0.00"))
-                kj+=1
-                if int(kj / 100) * 100 == kj:
-                    URL = config['SaveURL'].split( "log=")[0]+"log=" + logData
-                    URL = URL.replace("$IDdevice", config['IDdevice'])
-                    param = URL.split("?")[1]
-                    params={}
-                    for keyvalue in param.split('&'):
-                        key,value=keyvalue.split('=')
-                        params[key]=value
-                    URL = URL.split("?")[0]
-                    data = urllib.parse.urlencode(params).encode("utf-8")
-                    req = urllib.request.Request(URL)
-                    with urllib.request.urlopen(req,data=data) as f:
-                        resp = f.read()
-                    kj=0
-                    logData=''
-                    newData=False
-    if newData:
-        URL = config['saveURL'].split( "log=")[0]+"log=" + logData
-        param = URL.split("?")[1]
-        params={}
-        for keyvalue in param.split('&'):
-            key,value=keyvalue.split('=')
-            params[key]=value
-        URL = URL.split("?")[0]
-        data = urllib.parse.urlencode(params).encode("utf-8")
-        req = urllib.request.Request(URL)
-        with urllib.request.urlopen(req,data=data) as f:
-            resp = f.read()
-
-    return
+    saveSamples(config,calg,data,ncols,folderConfig)    
+    os.kill(os.getpid(), 9)
 
 def combineDict(a,b):
     for key in b.keys():
@@ -310,13 +322,16 @@ def combineDict(a,b):
             a[key]=b[key]
     return a
 
-def scrape_NOAA(config,fold):
-    from CONF import folderConfig
-    from  process import addMeasure,readBuffer,saveBuffer
+def scrape_NOAA(config,folderConfig):
+    #from CONF import folderConfig
+    from  process import readBuffer
     from calcAlgorithm import calcAlgorithm as ca
-    folderOut=fold+os.sep+'outTemp'
-    setFile=config['settingsFile'].replace('\\',os.sep)
-    settings=readConfig('',folderConfig+os.sep+setFile)
+    folderOut=folderConfig+os.sep+'outTemp'
+    if 'settingsFile' in config:
+        setFile=config['settingsFile'].replace('\\',os.sep)
+        settings=readConfig('',folderConfig+os.sep+setFile)
+    else:
+        settings={}
     today=datetime.utcnow().strftime('%Y%m%d')
     yesterday=(datetime.utcnow()-timedelta(days=1)).strftime('%Y%m%d')
     URL=config['serverAddress']    
@@ -328,85 +343,43 @@ def scrape_NOAA(config,fold):
     if not 'data'in json:
         print(json)
         return
-    data=json['data']
+    samples=json['data']
     ncols=1
     
     calg={}
     for j in range(ncols):
         buffer=readBuffer(folderConfig, int(config['n300']),j)
-        calg[j]=ca(j,fold,config,buffer)
+        calg[j]=ca(j,folderConfig,config,buffer)
     kj=0
     logData = ""
     newData=False
+    data=[]
     combConfig=combineDict(config, settings)
-    for dat in data:
-            tim = datetime.strptime(dat['t'],'%Y-%m-%d %H:%M')
+    for dat in samples:
+        tim = datetime.strptime(dat['t'],'%Y-%m-%d %H:%M')
+        try:
+            measure_Float = float(dat['v'])
+        except:
+            print('*** error',dat)
             #print(tim,calg[0]._LastDateTimeAcquired)
-            if tim > calg[0]._LastDateTimeAcquired and dat['v']!='':
-                logDataAdd=''
-                
-                for k in range(ncols):
-                    try:
-                        try:
-                            measure_Float = float(dat['v'])
-                        except:
-                            print('*** error',dat)
-                        forecast30,forecast300,rms,alertSignal,alertValue= calg[k].addMeasure(tim,measure_Float,fold,k)
-                        checkAlerts(combConfig ,tim, measure_Float, alertSignal,fold)
-                        logDataAdd = calg[k].prepareString(k,config, tim, measure_Float,forecast30,forecast300,rms,alertSignal,alertValue, logDataAdd)
-                        saveBuffer(calg[k]._x300,calg[k]._y300,calg[k]._yavg30,calg[k]._yavg300,folderConfig,k)
-                    except Exception as e:
-                        print(e)
-                logDataAdd=logDataAdd.replace('$V1','')
-                logDataAdd=logDataAdd.replace('$V2','')
-                logDataAdd=logDataAdd.replace('$V3','')
-                logData += logDataAdd +'\n'
-                print('.......'+logDataAdd[1:80])
-                oldDat = tim
-                oldvalue = measure_Float
-                newData = True
+        if tim > calg[0]._LastDateTimeAcquired and dat['v']!='':
+            data.append((tim,(measure_Float)))
 
-                #File.WriteAllText("lastValue.txt", Format(tim, "dd MMM yyyy HH:mm") & ", " & Format(value, "#0.00"))
-                kj+=1
-                if int(kj / 100) * 100 == kj:
-                    URL = config['SaveURL'].split( "log=")[0]+"log=" + logData
-                    URL = URL.replace("$IDdevice", config['IDdevice'])
-                    param = URL.split("?")[1]
-                    params={}
-                    for keyvalue in param.split('&'):
-                        key,value=keyvalue.split('=')
-                        params[key]=value
-                    URL = URL.split("?")[0]
-                    data = urllib.parse.urlencode(params).encode("utf-8")
-                    req = urllib.request.Request(URL)
-                    with urllib.request.urlopen(req,data=data) as f:
-                        resp = f.read()
-                    kj=0
-                    logData=''
-                    newData=False
-    if newData:
-        URL = config['SaveURL'].split( "log=")[0]+"log=" + logData
-        param = URL.split("?")[1]
-        params={}
-        for keyvalue in param.split('&'):
-            key,value=keyvalue.split('=')
-            params[key]=value
-        URL = URL.split("?")[0]
-        data = urllib.parse.urlencode(params).encode("utf-8")
-        req = urllib.request.Request(URL)
-        with urllib.request.urlopen(req,data=data) as f:
-            resp = f.read()
     
+    saveSamples(config,calg,data,ncols,folderConfig)    
+    os.kill(os.getpid(), 9)
 
-    return
+
 
 def scrape_GLOSS(config,folderConfig):
     #from CONF import folderConfig
-    from  process import addMeasure,readBuffer,saveBuffer
+    from  process import readBuffer
     from calcAlgorithm import calcAlgorithm as ca
     folderOut=folderConfig +os.sep+'outTemp'
     if not os.path.exists(folderOut):
         os.makedirs(folderOut)
+
+#  1)  collect the data into the "samples" collection
     URL=config['serverAddress'] 
     URL=URL.replace('$EQ','=')
     URL=URL.replace('$IDdevice',config['IDdevice'])
@@ -425,6 +398,8 @@ def scrape_GLOSS(config,folderConfig):
     #
     
     ncols=1
+
+#  2)  initialize the calculation algorithms
     calg={}
     for j in range(ncols):
         buffer=readBuffer(folderConfig, int(config['n300']),j)
@@ -432,73 +407,23 @@ def scrape_GLOSS(config,folderConfig):
     kj=0
     logData = ""
     newData=False
+
+#  3)  add the sampled data beyond the last acquired data into "data"
+    data= []
     for samp in samples:
-            tiSt=samp.findall('stime')[0].text
-            tim=datetime.strptime(tiSt,'%Y-%m-%d %H:%M:%S')
-            measure=float(samp.findall('slevel')[0].text)
+        tiSt=samp.findall('stime')[0].text
+        tim=datetime.strptime(tiSt,'%Y-%m-%d %H:%M:%S')
+        try:
+            measure_Float = float(samp.findall('slevel')[0].text)
+        except:
+            print('*** error',samp)
+        if tim > calg[0]._LastDateTimeAcquired:
+            data.append((tim,(measure_Float)))
 
-            if tim > calg[0]._LastDateTimeAcquired:
-                logDataAdd=''
-                
-                for k in range(ncols):
-                    try:
-                        try:
-                            measure_Float = float(samp.findall('slevel')[0].text)
-                        except:
-                            print('*** error',samp)
-                        forecast30,forecast300,rms,alertSignal,alertValue= calg[k].addMeasure(tim,measure_Float,folderConfig,k)
-                        checkAlerts(config ,tim, measure_Float, alertSignal,folderConfig)
-                        logDataAdd = calg[k].prepareString(k,config, tim, measure_Float,forecast30,forecast300,rms,alertSignal,alertValue, logDataAdd)
-                        saveBuffer(calg[k]._x300,calg[k]._y300,calg[k]._yavg30,calg[k]._yavg300,folderConfig,k)
-                    except Exception as e:
-                        print(e)
-                logDataAdd=logDataAdd.replace('$V1','')
-                logDataAdd=logDataAdd.replace('$V2','')
-                logDataAdd=logDataAdd.replace('$V3','')
-                logData += logDataAdd +'\n'
-                print('.......'+logDataAdd[:80])
-                fname=folderOut+os.sep+'execLog_'+datetime.strftime(tim,'%Y-%m-%d')+'.txt'
-                with open(fname,'a') as f1:
-                    f1.write(logDataAdd+'\n')
-
-                with open(folderOut+os.sep+'lastRead.txt','w') as f1:
-                    f1.write(datetime.strftime(tim,'%Y-%m-%d %HH:%MM:%SS'))
-                oldDat = tim
-                oldvalue = measure_Float
-                newData = True
-
-                #File.WriteAllText("lastValue.txt", Format(tim, "dd MMM yyyy HH:mm") & ", " & Format(value, "#0.00"))
-                kj+=1
-                if int(kj / 100) * 100 == kj and config['SaveURL'] !='':
-                    URL = config['SaveURL'].split( "log=")[0]+"log=" + logData
-                    URL = URL.replace("$IDdevice", config['IDdevice'])
-                    param = URL.split("?")[1]
-                    params={}
-                    for keyvalue in param.split('&'):
-                        key,value=keyvalue.split('=')
-                        params[key]=value
-                    URL = URL.split("?")[0]
-                    data = urllib.parse.urlencode(params).encode("utf-8")
-                    req = urllib.request.Request(URL)
-                    with urllib.request.urlopen(req,data=data) as f:
-                        resp = f.read()
-                    kj=0
-                    logData=''
-                    newData=False
-    if newData  and config['SaveURL'] !='':
-        URL = config['SaveURL'].split( "log=")[0]+"log=" + logData
-        param = URL.split("?")[1]
-        params={}
-        for keyvalue in param.split('&'):
-            key,value=keyvalue.split('=')
-            params[key]=value
-        URL = URL.split("?")[0]
-        data = urllib.parse.urlencode(params).encode("utf-8")
-        req = urllib.request.Request(URL)
-        with urllib.request.urlopen(req,data=data) as f:
-            resp = f.read()
-    
+#  4)  save the data or print them
+    saveSamples(config,calg,data,ncols,folderConfig)    
     os.kill(os.getpid(), 9)
+
     
 
 def multi_scrape(idThread,config,wgetData,listConfig):
@@ -523,15 +448,24 @@ def multi_scrape(idThread,config,wgetData,listConfig):
 
 
 if __name__ == "__main__":
+
     arguments = sys.argv[1:]
     count = len(arguments)
     print (count)
-    
-    for j in range(len(arguments[1:])):
-        arg,argv=arguments[j:j+2]
+    if count<2:
+        print('example of call: scrape.py -code  adak  -n300 100  -n30 15  -mult 4  -add 0.1  -th 0.08 -mode GLOSS  -out /temp/adak')
+        print('example of call: scrape.py -IDdevice NOAA_Clearance_Water -code  9432780  -n300 100  -n30 15  -mult 4  -add 0.1  -th 0.08 -mode NOAA  -out /temp/Clearance_Water')
+    else:
+        for j in range(len(arguments[1:])):
+            arg,argv=arguments[j:j+2]
         
-        if arg=='-mode':
-            if argv=='GLOSS':
-                fold=config['outFolder']
-                scrape_GLOSS(config,fold)
+            if arg=='-mode':
+                mode=argv
+
+        if mode=='GLOSS':
+            fold=config['outFolder']
+            scrape_GLOSS(config,fold)
+        elif mode=='NOAA':
+            fold=config['outFolder']
+            scrape_NOAA(config,fold)
        
