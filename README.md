@@ -55,7 +55,10 @@ The output will be in the form of a list of data analysed applying the detection
   the number appearing as station ID is what is needed.  So  for Charleston, is :  **9435380**
   
   So to analyse this you should call:
-  <code>
-  python3 scrape.py -code  **9435380**  -n300 200  -n30 50  -mult 4  -add 0.1  -th 0.08 -mode NOAA  -out /temp/Charleston
+<code>
+  python3 scrape.py -code  **9435380**  -n300 100  -n30 20  -mult 4  -add 0.1  -th 0.08 -mode NOAA  -out /temp/Charleston
 </code>
+  
+  ![image](https://user-images.githubusercontent.com/10267112/172599427-39374fb1-7caf-487c-832d-21520faf8996.png)
 
+You can note that the long term forecast does not well follow the level signal. The reson is that the number of points chosen, 100 is too large because this signal has only one point every 6 minutes. Therefore 100 points represent 10h  that is too much.  The maximum should be in the oreder of 2h  and therefore the n300 value should be around 20.  The short term forecast n30 should be 2 or 3.  This procedure works well with a rather dense number of points, not so coarse as in thsis case
