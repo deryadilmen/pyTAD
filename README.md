@@ -25,14 +25,14 @@ To test the calculation procedure you can use the following command:
   
   where:
   
-  -code :  is the code of the device,  as from the list indicated above<br>
-  -n300 :  is the long term number of intervals<br>
-  -30   :  is the short term number of intervals<br>
-  -mult :  is the rms multiplication factor<br>
-  -add  :  is the adding quantity to the rms<br>
-  -th   :  is the threshold  to be overpassed<br>
-  -mode :  is the indication of the type of sea level netwrok  (GLOSS/NOAA, BIG_INA...)  <br>
-  -out  :  is optional and indicates where to write the output<br>
+  * -code :  is the code of the device,  as from the list indicated above<br>
+  * -n300 :  is the long term number of intervals<br>
+  * -30   :  is the short term number of intervals<br>
+  * -mult :  is the rms multiplication factor<br>
+  * -add  :  is the adding quantity to the rms<br>
+  * -th   :  is the threshold  to be overpassed<br>
+  * -mode :  is the indication of the type of sea level netwrok  (GLOSS/NOAA, BIG_INA...)  <br>
+  * -out  :  is optional and indicates where to write the output<br>
   
 The output will be in the form of a list of data analysed applying the detection algorithm.  If the command is repeated, only the new data will be considered from the last time the command was run.  The response is the following 
   
