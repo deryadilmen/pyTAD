@@ -43,8 +43,8 @@ The output will be in the form of a list of data analysed applying the detection
   iera,08/06/2022,00:10:00,0.0,0.0,**0.237,0.241,0.238**,0.00250,0.002,0,0.00,,,
   
   The quantities displayed are generated according to thsi definition:
-  logData='$IDdevice,**$DATE,$TIME**,$TEMP,$PRESS,**$LEV,$FORE30,$FORE300,$RMS,$ALERT_LEVEL,$ALERT_SIGNAL**,$V1,$V2,$V3,
-  
+  logData='$IDdevice,$DATE,$TIME**,$TEMP,$PRESS,**$LEV,$FORE30,$FORE300,$RMS,$ALERT_LEVEL,$ALERT_SIGNAL**,$V1,$V2,$V3,
+**  
   Temp, PRESS and V1, V2 and V3 are not relevant and always kep contact. The quantities in bold are the ones considered/
   
   The plot of these quantities is the following:
