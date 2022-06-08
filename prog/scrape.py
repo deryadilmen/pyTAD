@@ -217,7 +217,7 @@ def scrape_TCP(config,queueData,folderOut):
                     break
         time.sleep(1)       
 
-def saveSamples(config,calg,data,ncols,folderConfig):
+def saveSamples(config,calg,data,ncols,folderConfig, folderOut):
     from  process import addMeasure,readBuffer,saveBuffer
     logData=''
     kj=-1
@@ -244,7 +244,7 @@ def saveSamples(config,calg,data,ncols,folderConfig):
         with open(fname,'a') as f1:
             f1.write(logDataAdd+'\n')
 
-        with open(folderOut+os.sep+'lastRead.txt','w') as f1:
+        with open(folderConfig+os.sep+'lastRead.txt','w') as f1:
             f1.write(datetime.strftime(tim,'%Y-%m-%d %HH:%MM:%SS'))
         oldDat = tim
         oldvalue = measure_Float
@@ -327,6 +327,8 @@ def scrape_NOAA(config,folderConfig):
     from  process import readBuffer
     from calcAlgorithm import calcAlgorithm as ca
     folderOut=folderConfig+os.sep+'outTemp'
+    if not os.path.exists(folderOut):
+        os.makedirs(folderOut)
     if 'settingsFile' in config:
         setFile=config['settingsFile'].replace('\\',os.sep)
         settings=readConfig('',folderConfig+os.sep+setFile)
@@ -366,7 +368,7 @@ def scrape_NOAA(config,folderConfig):
             data.append((tim,(measure_Float)))
 
     
-    saveSamples(config,calg,data,ncols,folderConfig)    
+    saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
     os.kill(os.getpid(), 9)
 
 
@@ -383,16 +385,20 @@ def scrape_GLOSS(config,folderConfig):
     URL=config['serverAddress'] 
     URL=URL.replace('$EQ','=')
     URL=URL.replace('$IDdevice',config['IDdevice'])
+    print('opening URL=',URL)
     xmlbin=urllib.request.urlopen(URL).read()
     xmlstr=xmlbin.decode()
+    print('len(xmlstr)',len(xmlstr))
     with open('_xml.xml','w') as f:
         f.write(xmlstr)
     #    
     time.sleep(1)    
+    print('opening ','_xml.xml')
     tree = ET.parse('_xml.xml')
     os.remove('_xml.xml')
     root=tree.getroot()
     samples=root.findall('sample')
+    print('len(samples)',len(samples))
     if len(samples)==0:
         return
     #
@@ -421,7 +427,7 @@ def scrape_GLOSS(config,folderConfig):
             data.append((tim,(measure_Float)))
 
 #  4)  save the data or print them
-    saveSamples(config,calg,data,ncols,folderConfig)    
+    saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
     os.kill(os.getpid(), 9)
 
     
