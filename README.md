@@ -23,4 +23,15 @@ To test the calculation procedure you can use the following command:
     scrape.py -code  alge  -n300 100  -n30 15  -mult 4  -add 0.1  -th 0.08 -mode GLOSS  -out /temp/alge
   </code>
   
+  where:
   
+  -code :  is the code of the device,  as from the list indicated above
+  -n300 :  is the long term number of intervals
+  -30   :  is the short term number of intervals
+  -mult :  is the rms multiplication factor
+  -add  :  is the adding quantity to the rms
+  -th   :  is the threshold  to be overpassed
+  -mode :  is the indication of the type of sea level netwrok  (GLOSS/NOAA, BIG_INA...)  
+  -out  :  is optional and indicates where to write the output
+  
+The output will be in the form of a list of data analysed applying the detection algorithm.  If the command is repeated, only the new data will be considered from the last time the command was run
