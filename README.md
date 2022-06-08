@@ -17,10 +17,10 @@ To test the calculation procedure you can use the following command:
  Suppose that you have to analyse the tide gauge from the GLOSS Sea Level Facility,  you can use this command below, using as parameter  code  the value of the code from this list:
   https://www.ioc-sealevelmonitoring.org/list.php 
   
-  If you want to analyse Apalachicola, in USA, the code is <b>apfl</b>
+  If you want to analyse Ierapetra, in Greece, the code is <b>apfl</b>.  Any available signal in the list above can be used.
   
   <code>
-    scrape.py -code  apfl  -n300 100  -n30 15  -mult 4  -add 0.1  -th 0.08 -mode GLOSS  -out ./temp/apfl
+    scrape.py -code  iera  -n300 100  -n30 15  -mult 4  -add 0.1  -th 0.08 -mode GLOSS  -out ./temp/iera
   </code>
   
   where:
@@ -36,5 +36,12 @@ To test the calculation procedure you can use the following command:
   
 The output will be in the form of a list of data analysed applying the detection algorithm.  If the command is repeated, only the new data will be considered from the last time the command was run.  The response is the following 
   
-  ![image](https://user-images.githubusercontent.com/10267112/172590425-2ca23b02-a8fa-45ea-9b2a-9d44e553e5cb.png)
+  ![image](https://user-images.githubusercontent.com/10267112/172593612-b56043eb-2e96-420f-aafd-52ea1da71518.png)
+
+  The quantities in the middle represent the se alevel,  the foreacsat short term and forecast long term
+  
+  iera,08/06/2022,00:10:00,0.0,0.0,**0.237,0.241,0.238**,0.00250,0.002,0,0.00,,,
+  
+  ![image](https://user-images.githubusercontent.com/10267112/172593417-7a97ba45-50f3-4ccb-af62-54f346ef1837.png)
+
 
