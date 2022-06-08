@@ -20,7 +20,7 @@ To test the calculation procedure you can use the following command:
   If you want to analyse Ierapetra, in Greece, the code is <b>apfl</b>.  Any available signal in the list above can be used.
   
   <code>
-    scrape.py -code  iera  -n300 100  -n30 15  -mult 4  -add 0.1  -th 0.08 -mode GLOSS  -out ./temp/iera
+   python3 scrape.py -code  iera  -n300 200  -n30 50  -mult 4  -add 0.1  -th 0.08 -mode GLOSS  -out ./temp/iera
   </code>
   
   where:
@@ -42,6 +42,20 @@ The output will be in the form of a list of data analysed applying the detection
   
   iera,08/06/2022,00:10:00,0.0,0.0,**0.237,0.241,0.238**,0.00250,0.002,0,0.00,,,
   
+  The plot of these quantities is the following:
+  
   ![image](https://user-images.githubusercontent.com/10267112/172593417-7a97ba45-50f3-4ccb-af62-54f346ef1837.png)
-
+  
+  If you would like to analyse one of the nOAA sea levels according to the list of sea levels  contained in this page:
+  https://tidesandcurrents.noaa.gov/sltrends/sltrends_us.html
+  
+  then clicking on  one specific area, i.e. Oregon:
+  https://tidesandcurrents.noaa.gov/sltrends/sltrends_states.html?gid=1234
+  
+  the number appearing as station ID is what is needed.  So  for Charleston, is :  **9435380**
+  
+  So to analyse this you should call:
+  <code>
+  python3 scrape.py -code  **9435380**  -n300 200  -n30 50  -mult 4  -add 0.1  -th 0.08 -mode NOAA  -out /temp/Charleston
+</code>
 
