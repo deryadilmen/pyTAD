@@ -1,5 +1,6 @@
 # pyTAD
-Python version of tad programme for IDSLs
+Python version of tad programme for IDSLs, by Alessandro Annunziato, Joint Research Centre
+(c)  2022
 
 The programmes in the prog folder represent the suite of programmes used in the Inexpensive Device for Sea Level Measurements ( IDSLs) devices and whose objective is to process the data in real time to provide an alert in case an anomalous wave, originated by a Tsunami or any other reason, is detected. 
 
