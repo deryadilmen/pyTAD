@@ -35,7 +35,7 @@ To test the calculation procedure you can use the following command:
     <tr><td>-add</td><td>is the adding quantity to the rms</td></tr>    
     <tr><td>-th</td><td>threshold  to be overpassed</td></tr>    
     <tr><td>-mode</td><td>type of sea level netwrok  (GLOSS/NOAA, BIG_INA...)</td></tr>        
-    <tr><td>-out</td>d<td>optional and indicates where to write the output</td></tr>            
+    <tr><td>-out</td><td>optional and indicates where to write the output</td></tr>            
   </table>
   
 The output will be in the form of a list of data analysed applying the detection algorithm.  If the command is repeated, only the new data will be considered from the last time the command was run.  The response is the following 
@@ -72,3 +72,8 @@ The output will be in the form of a list of data analysed applying the detection
   ![image](https://user-images.githubusercontent.com/10267112/172599427-39374fb1-7caf-487c-832d-21520faf8996.png)
 
 You can note that the long term forecast does not well follow the level signal. The reson is that the number of points chosen, 100 is too large because this signal has only one point every 6 minutes. Therefore 100 points represent 10h  that is too much.  The maximum should be in the oreder of 2h  and therefore the n300 value should be around 20.  The short term forecast n30 should be 2 or 3.  This procedure works well with a rather dense number of points, not so coarse as in thsis case
+
+
+The SeaLevelMachine is the software contained in the test application: https://slm.azurewebsites.com   that allows to perform calculations on the fly of a huge amount of sea level stations and verify the effect of changing the parameters.  The application is very primitive but is done only to test the routine and show how they can be implemented in other programs.
+
+![image](https://user-images.githubusercontent.com/10267112/187837319-18f264eb-8103-4c76-b0e5-690a20e37bc0.png)
