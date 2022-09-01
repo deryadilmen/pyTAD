@@ -57,7 +57,12 @@ for i in psutil.pids():
         proc=' '.join(psutil.Process(i).cmdline())
         
         if 'tad.py -c '+folderConfig in proc:
+           print(proc)
+           if not '-f True' in proc:
              procs.append(i)
+           else:
+             print('process running with -f')
+             procs.append(-1)
     except:
         i=i  #print(i)
 

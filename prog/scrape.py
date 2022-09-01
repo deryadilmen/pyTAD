@@ -1,10 +1,11 @@
-
+import ftplib
 from CONF import config, folderOut
 import json,os,sys
 from datetime import datetime, timedelta
 import time
 from urllib.request import urlopen
 import urllib
+import uuid
 
 from alerts import checkAlerts
 
@@ -74,6 +75,7 @@ def saveData(config,wgetData,folderOut,tt,press,temp,measure_Float,forecast30,fo
             #riga+=format(nd1)
                     
             riga=SaveURL.split('log=')[1].replace('$S','').replace('$E','')
+            riga +=' ( wget:'+format(len(wgetData))+')'
             checkAlerts(config,tt,measure_Float,alertValue, folderOut)
 
             print(riga)
@@ -83,7 +85,8 @@ def saveData(config,wgetData,folderOut,tt,press,temp,measure_Float,forecast30,fo
             f1.write(riga+'\n')
             f1.close()
             with open(folderOut+os.sep+'lastRead.txt','w') as f1:
-                f1.write(datetime.strftime(tt,'%Y-%m-%d %HH:%MM:%SS'))
+                f1.write(datetime.strftime(tt,'%Y-%m-%d %H:%M:%S'))
+
         except Exception as e:
             print(e)
 
@@ -115,14 +118,14 @@ def scrape_init(config,wgetData,folderOut):
             try:
                 with open(folderOut+os.sep+'lastRead.txt') as f1:
                     lr=f1.read()
-                lastread=datetime.strptime(lr,'%Y-%m-%d %HH:%MM:%SS')
+                lastread=datetime.strptime(lr,'%Y-%m-%d %H:%M:%S')
             except:
                 lastread=datetime(2022,1,1)  
         else:
             lastread=datetime(2022,1,1)  
         
         while True:
-            t0=datetime.utcnow()-timedelta(seconds=3600)
+            t0=datetime.utcnow() -timedelta(seconds=3600)
             t1=datetime.utcnow()
             tstart=t0.strftime('%Y-%m-%d %H:%M:%S')
             tend=t1.strftime('%Y-%m-%d %H:%M:%S')
@@ -153,7 +156,7 @@ def scrape_init(config,wgetData,folderOut):
                     t,v=rd
             
                     try:
-                        tt = datetime.fromtimestamp(t/1000)- timedelta(seconds=2*3600)
+                        tt = datetime.fromtimestamp(t/1000) #- timedelta(seconds=2*3600)  # on azure there is no need for this
                         measure_Float=float(v)
                         #print(format(tt)+', '+format(measure_Float))
                     except:
@@ -185,6 +188,7 @@ def scrape_TCP(config,queueData,folderOut):
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((HOST, PORT))
+            stream=''
             while True:
                 try: 
                     data = s.recv(1024).decode()
@@ -196,6 +200,7 @@ def scrape_TCP(config,queueData,folderOut):
                 if connected:            
                     if config['TCP_type']=='SECIL':
                         levs=data.split('\n\r')
+
                         for lev in levs:
                             if lev !='':
                                 tt=datetime.utcnow()
@@ -207,12 +212,30 @@ def scrape_TCP(config,queueData,folderOut):
                                 #print(tt,lev)
                                 #forecast30,forecast300,rms,alertSignal,alertValue= addMeasure(tt,lev,folderOut)
                                 #saveData(config,wgetData,folderOut,tt,908,22,lev,forecast30,forecast300,rms,alertValue,alertSignal,0,0,0)     
+                    elif config['TCP_type']=='MIROS-IS':
+                        levs=data.split('\r\n')
+                        #print (levs)
+                        for lev in levs:
+
+                            if lev !='' and lev.startswith('$YXXDR'):
+                                tt=datetime.utcnow()
+                                floatLev=lev.split(',')[2]
+                                queueData.append((tt,float(floatLev)))
+                                fname=folderOut+os.sep+'AllData_'+datetime.strftime(tt,'%Y-%m-%d')+'.log'
+                                fh=open(fname,'a')
+                                fh.write(format(tt)+' '+format(lev)+'\n')
+                                fh.close()
+                                #print(tt,lev)
+                                #forecast30,forecast300,rms,alertSignal,alertValue= addMeasure(tt,lev,folderOut)
+                                #saveData(config,wgetData,folderOut,tt,908,22,lev,forecast30,forecast300,rms,alertValue,alertSignal,0,0,0)     
                     time.sleep(0.1)
                     t1=datetime.utcnow()
-                    print('time from opening: ',(t1-t0).seconds)
+                    #print('time from opening: ',(t1-t0).seconds)
                     if (t1-t0).seconds>3600:
                         print('close connection and restart')
                         break
+                    else:
+                        t0=t1
                 else:
                     break
         time.sleep(1)       
@@ -221,31 +244,45 @@ def saveSamples(config,calg,data,ncols,folderConfig, folderOut):
     from  process import addMeasure,readBuffer,saveBuffer
     logData=''
     kj=-1
+    redisObj=None
     for tim,samp in data:
         logDataAdd=''
+        overallDict={}
         for k in range(ncols):
             if ncols>1:
                 measure_Float=samp[k]
             else:
-                measure_Float=samp
+                if type(samp)==list:
+                    measure_Float=samp[0]
+                else:
+                    measure_Float=samp
+            if measure_Float==None:
+                continue
             try:
                 forecast30,forecast300,rms,alertSignal,alertValue= calg[k].addMeasure(tim,measure_Float,folderConfig,k)
                 checkAlerts(config ,tim, measure_Float, alertSignal,folderConfig)
                 logDataAdd = calg[k].prepareString(k,config, tim, measure_Float,forecast30,forecast300,rms,alertSignal,alertValue, logDataAdd)
+                if 'REDISserver' in config:
+                    overallDict=calg[k].prepareREDIS(overallDict,k,config, tim, measure_Float,forecast30,forecast300,rms,alertSignal,alertValue, logDataAdd)                    
                 saveBuffer(calg[k]._x300,calg[k]._y300,calg[k]._yavg30,calg[k]._yavg300,folderConfig,k)
             except Exception as e:
                 print(e)
-        logDataAdd=logDataAdd.replace('$V1','')
-        logDataAdd=logDataAdd.replace('$V2','')
-        logDataAdd=logDataAdd.replace('$V3','')
-        logData += logDataAdd +'\n'
+        if 'REDISserver' in config:
+            resp,redisObj=calg[k].sendREDIS(config,overallDict,redisObj)
+        logDataAdd=logDataAdd.replace('$V1','0')
+        logDataAdd=logDataAdd.replace('$V2','0')
+        logDataAdd=logDataAdd.replace('$V3','0')
+        if 'inp1' in logDataAdd or '$LEV' in logDataAdd or '$LEV_2' in logDataAdd or '$LEV' in logDataAdd:
+            logDataAdd=logDataAdd
+        else:
+            logData += logDataAdd +'\n'
         print('.......'+logDataAdd[:80])
         fname=folderOut+os.sep+'execLog_'+datetime.strftime(tim,'%Y-%m-%d')+'.txt'
         with open(fname,'a') as f1:
             f1.write(logDataAdd+'\n')
 
         with open(folderConfig+os.sep+'lastRead.txt','w') as f1:
-            f1.write(datetime.strftime(tim,'%Y-%m-%d %HH:%MM:%SS'))
+            f1.write(datetime.strftime(tim,'%Y-%m-%d %H:%M:%S'))
         oldDat = tim
         oldvalue = measure_Float
         newData = True
@@ -262,10 +299,11 @@ def saveSamples(config,calg,data,ncols,folderConfig, folderOut):
                 key,value=keyvalue.split('=')
                 params[key]=value
             URL = URL.split("?")[0]
-            data = urllib.parse.urlencode(params).encode("utf-8")
-            req = urllib.request.Request(URL)
-            with urllib.request.urlopen(req,data=data) as f:
-                resp = f.read()
+            try:
+                x=requests.post(URL,data=params)
+                print(x.text)
+            except Exception as e:
+                x=''
             kj=0
             logData=''
             newData=False
@@ -322,7 +360,7 @@ def combineDict(a,b):
             a[key]=b[key]
     return a
 
-def scrape_NOAA(config,folderConfig):
+def scrape_NOAA(config,folderConfig,killProcess=True):
     #from CONF import folderConfig
     from  process import readBuffer
     from calcAlgorithm import calcAlgorithm as ca
@@ -352,6 +390,7 @@ def scrape_NOAA(config,folderConfig):
     for j in range(ncols):
         buffer=readBuffer(folderConfig, int(config['n300']),j)
         calg[j]=ca(j,folderConfig,config,buffer)
+    print('scrape: last time acquired:', config['IDdevice'],calg[0]._LastDateTimeAcquired)
     kj=0
     logData = ""
     newData=False
@@ -360,7 +399,8 @@ def scrape_NOAA(config,folderConfig):
     for dat in samples:
         tim = datetime.strptime(dat['t'],'%Y-%m-%d %H:%M')
         try:
-            measure_Float = float(dat['v'])
+            if dat['v'] !='':
+                measure_Float = float(dat['v'])
         except:
             print('*** error',dat)
             #print(tim,calg[0]._LastDateTimeAcquired)
@@ -368,15 +408,18 @@ def scrape_NOAA(config,folderConfig):
             data.append((tim,(measure_Float)))
 
     
-    saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
-    os.kill(os.getpid(), 9)
+    saveSamples(config,calg,data,ncols,folderConfig, folderOut)  
+    if killProcess:
+        os.kill(os.getpid(), 9)
 
 
 
-def scrape_GLOSS(config,folderConfig):
+def scrape_GLOSS(config,folderConfig,killProcess=True):
     #from CONF import folderConfig
     from  process import readBuffer
     from calcAlgorithm import calcAlgorithm as ca
+    if config['sensors']=='':
+        return
     folderOut=folderConfig +os.sep+'outTemp'
     if not os.path.exists(folderOut):
         os.makedirs(folderOut)
@@ -386,20 +429,218 @@ def scrape_GLOSS(config,folderConfig):
     URL=URL.replace('$EQ','=')
     URL=URL.replace('$IDdevice',config['IDdevice'])
     print('opening URL=',URL)
+    if URL=='https://www.ioc-sealevelmonitoring.org/service.php?query=data&format=xml&code=acaj&period=7':
+         URL=URL
+    URL=URL.replace('period=7','period=1')
     xmlbin=urllib.request.urlopen(URL).read()
     xmlstr=xmlbin.decode()
     print('len(xmlstr)',len(xmlstr))
-    with open('_xml.xml','w') as f:
+    fname='temp_'+format(uuid.uuid1().int)+'.xml'
+    with open(fname,'w') as f:
         f.write(xmlstr)
     #    
-    time.sleep(1)    
-    print('opening ','_xml.xml')
-    tree = ET.parse('_xml.xml')
-    os.remove('_xml.xml')
+    time.sleep(.1)    
+    print('opening ',fname)
+    tree = ET.parse(fname)
+    os.remove(fname)    
     root=tree.getroot()
     samples=root.findall('sample')
     print('len(samples)',len(samples))
     if len(samples)==0:
+        return
+    #
+    sensors=config['sensors'].split(',')
+    
+    indexSens={}
+    if type(sensors)==list:
+        ncols=len(sensors)
+        for k in range(len(sensors)):
+            indexSens[sensors[k]]=k
+    else:
+        ncols=1
+        indexSens[sensors]=0
+
+#  2)  initialize the calculation algorithms
+    calg={}
+    for j in range(ncols):
+        print(j,folderConfig)
+        buffer=readBuffer(folderConfig, int(config['n300']),j)
+        calg[j]=ca(j,folderConfig,config,buffer)
+    
+    if os.path.exists(folderConfig+os.sep+'lastRead.txt'):
+        try:
+            with open(folderConfig+os.sep+'lastRead.txt') as f:
+                LastDateTimeAcquired=datetime.strptime(f.read(),'%Y-%m-%d %H:%M:%S')
+                #if LastDateTimeAcquired<datetime.strptime('2022-08-09','%Y-%m-%d'):
+                #    os.kill()
+        except:
+            LastDateTimeAcquired=calg[0]._LastDateTimeAcquired
+    else:
+        LastDateTimeAcquired=calg[0]._LastDateTimeAcquired
+
+    print('scrape:', config['IDdevice'],format(LastDateTimeAcquired))
+    kj=0
+    logData = ""
+    newData=False
+
+#  3)  add the sampled data beyond the last acquired data into "data"
+    data= []
+    data0={}
+    
+    for samp in samples:
+        try:
+            tiSt=samp.findall('stime')[0].text
+            sens=samp.findall('sensor')[0].text
+            if sens in indexSens:
+                inds=indexSens[sens]
+                if not inds in data0:
+                    data0[inds]=[]
+                tim=datetime.strptime(tiSt,'%Y-%m-%d %H:%M:%S')
+                try:
+                    measure_Float = float(samp.findall('slevel')[0].text)
+                except:
+                    print('*** error',samp)
+                if tim > LastDateTimeAcquired:
+                    data0[inds].append((tim,measure_Float))
+        except:
+            samp=samp
+     # ora devo ricreare data in modo che tutti abbiano gli stessi punti
+    maxPt=-1
+    setTime=-1
+    if len(data0)>0:
+        try:
+            if ncols>1:
+                for kk in range(ncols):
+                     if len(data0[kk][0])>maxPt:
+                         maxPt=len(data0[kk][0])
+                         setTime=kk
+                #  il ref time e' setTime
+                for hh in range(len(data0[setTime])):
+                    tim=data0[setTime][hh][0]
+                    measure_Float=[]                    
+                    for kk in range(ncols):
+                        vmeasure=-1
+                        for jj in range(len(data0[kk])):
+                            t1=data0[kk][jj][0]
+                            v=data0[kk][jj][1]
+                            if t1>=tim:
+                                vmeasure=v
+                                break
+                        measure_Float.append(vmeasure)
+
+
+                    data.append((tim,(measure_Float)))
+            else:
+                data=data0[0]
+        except:
+            data=data
+        
+#  4)  save the data or print them
+    saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
+    if killProcess:
+        os.kill(os.getpid(), 9)
+
+def getDATA_DART(URL,LastTimeRecorded):
+    resp=requests.get(URL).text
+    dataOut=[]
+    if '#yr  mo dy hr mn  s -      m'  in resp:
+        data=resp.split('#yr  mo dy hr mn  s -      m')[1].split('</textarea')[0].split('\n')
+    else:
+        return []
+    try:
+        for j in range(len(data)-1,0,-1):
+            d=data[j]
+            if d=='' or d=='\n': continue
+            #2022 08 07 11 45 00 1 4737.192
+            #01234567890123456789012
+            datTime=datetime.strptime(d[:18],'%Y %m %d %H %M %S')
+            lev    =float(d[21:])
+            if datTime>LastTimeRecorded:
+                dataOut.append((datTime,lev))
+    except Exception as e:
+        print(e)
+    return dataOut
+
+def scrape_DART(config,folderConfig,killProcess=True):
+    #from CONF import folderConfig
+    from  process import readBuffer
+    from calcAlgorithm import calcAlgorithm as ca
+
+    folderOut=folderConfig +os.sep+'outTemp'
+    if not os.path.exists(folderOut):
+        os.makedirs(folderOut)
+
+#  1)  collect the data into the "samples" collection
+    URL=config['serverAddress'] 
+    URL=URL.replace('$EQ','=')
+    URL=URL.replace('$IDdevice',config['IDdevice'])
+    print('opening URL=',URL)
+    if os.path.exists(folderConfig+os.sep+'lastRead.txt'):
+        try:
+            with open(folderConfig+os.sep+'lastRead.txt') as f:
+                LastDateTimeAcquired=datetime.strptime(f.read(),'%Y-%m-%d %H:%M:%S')
+                #if LastDateTimeAcquired<datetime.strptime('2022-08-09','%Y-%m-%d'):
+                #    os.kill()
+        except:
+            LastDateTimeAcquired=datetime.strptime('2000-01-01','%Y-%m-%d')
+    else:
+        LastDateTimeAcquired=datetime.strptime('2000-01-01','%Y-%m-%d')
+
+    samples=getDATA_DART(URL,LastDateTimeAcquired)
+    print('len(samples)',len(samples))
+    if len(samples)==0:
+        return
+    #
+    ncols=1
+#  2)  initialize the calculation algorithms
+    calg={}
+    for j in range(ncols):
+        print(j,folderConfig)
+        buffer=readBuffer(folderConfig, int(config['n300']),j)
+        calg[j]=ca(j,folderConfig,config,buffer)
+    
+
+    print('scrape:', config['IDdevice'],format(LastDateTimeAcquired))
+    
+    logData = ""
+   
+        
+#  4)  save the data or print them
+    saveSamples(config,calg,samples,ncols,folderConfig, folderOut)    
+    if killProcess:
+        os.kill(os.getpid(), 9)
+
+def scrape_TR(config,folderConfig,killProcess=True):
+    #from CONF import folderConfig
+
+    from  process import readBuffer
+    from calcAlgorithm import calcAlgorithm as ca
+    folderOut=folderConfig +os.sep+'outTemp'
+    if not os.path.exists(folderOut):
+        os.makedirs(folderOut)
+
+#  1)  collect the data into the "samples" collection
+    # KAN:K2020@ftp://193.140.203.10/sea_level/Antalya_Sec30.dat
+    URL=config['serverAddress'] 
+    #USERNAME=URL.split('@')[0].split(':')[0]
+    #PASSWORD=ÚSERNAME=URL.split('@')[0].split(':')[1]
+    #HOSTNAME=URL.split('//')[1].split('/')[0]
+    #remoteDir=URL.split(HOSTNAME+'/')[1].split('/')[0]
+    #filename=URL.split(remoteDir+'/')[1]
+    print('opening URL=',URL)
+    #ftp_server = ftplib.FTP(HOSTNAME, USERNAME, PASSWORD)
+    #ftp_server.cwd(remoteDir) 
+    #with open(folderOut+os.sep+filename, "wb") as file:
+    ## Command for Downloading the file "RETR filename"
+    #    ftp_server.retrbinary(f"RETR {filename}", file.write)
+    rows=requests.get(URL).text.split('\r\n')
+    #with open(folderOut+os.sep+filename, "r") as file:
+    #    testo=file.read()
+ 
+
+    #rows=testo.split('\n')
+    print('file opened ',len(rows))
+    if len(rows)<4:
         return
     #
     
@@ -410,47 +651,340 @@ def scrape_GLOSS(config,folderConfig):
     for j in range(ncols):
         buffer=readBuffer(folderConfig, int(config['n300']),j)
         calg[j]=ca(j,folderConfig,config,buffer)
+        #calg[0]._LastDateTimeAcquired=datetime(2022,1,1)
     kj=0
     logData = ""
     newData=False
 
 #  3)  add the sampled data beyond the last acquired data into "data"
     data= []
-    for samp in samples:
-        tiSt=samp.findall('stime')[0].text
-        tim=datetime.strptime(tiSt,'%Y-%m-%d %H:%M:%S')
-        try:
-            measure_Float = float(samp.findall('slevel')[0].text)
-        except:
-            print('*** error',samp)
-        if tim > calg[0]._LastDateTimeAcquired:
-            data.append((tim,(measure_Float)))
+    for row in rows[4:]:
+        if not row.startswith('#') and row !='':
+            tiSt=row.split(',')[0]
+            tim=datetime.strptime(tiSt,'%Y/%m/%d %H:%M:%S')
+            try:
+                measure_Float = float(row.split(',')[1])
+            except:
+                print('*** error',samp)
+            if tim > calg[0]._LastDateTimeAcquired:
+                print(tim,measure_Float)
+                data.append((tim,(measure_Float)))
 
 #  4)  save the data or print them
-    saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
-    os.kill(os.getpid(), 9)
+    if data !=[]:
+        saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
+    if killProcess:
+        os.kill(os.getpid(), 9)
 
+def read_execLog_IDSL0(config,wgetData):
+    readExec=config['READ_EXECLOG']
+    SaveURL=config['SaveURL']
+    SaveURL=SaveURL.replace('$EQ','=')
+    SaveURL=SaveURL.replace('\$','$')
+
+    with open(readExec) as f:
+        lines=f.read().split('\n')
+    for line in lines:
+        idDevice=line.split(',')[0]
+        data=line.split('(')[0].strip()
+        SaveURL1=SaveURL.replace('$IDdevice',idDevice)
+        SaveURL1=SaveURL1.split('log=')[0]+'log=$S'+data+'$E'
+        print (SaveURL1,len(wgetData))
+        wgetData.append(SaveURL1)
+        time.sleep(0.2)
+    while True:
+        print(len(wgetData))
+        time.sleep(1)
+
+def saveAllLog(URL,logData,config):
+        URL = config['SaveURL']
+        URL = URL.replace("$EQ", '=')
+        URL=URL.replace('\$','$')
+        URL = URL.replace("$IDdevice", config['IDdevice'])
+
+        URL = URL.split( "log=")[0]+"log=" + logData
+        
+
+        param = URL.split("?")[1]
+        params={}
+        for keyvalue in param.split('&'):
+            try:
+                key,value=keyvalue.split('=')
+                params[key]=value
+            except:
+                params=params
+        URL = URL.split("?")[0]
+
+        x=requests.post(URL,data=params)
+        print(x.text)
+        time.sleep(2)
+
+def read_execLog_IDSL(config,wgetData):
+    readExec=config['READ_EXECLOG']
+    SaveURL=config['SaveURL']
+    SaveURL=SaveURL.replace('$EQ','=')
+    SaveURL=SaveURL.replace('\$','$')
+
+    with open(readExec) as f:
+        lines=f.read().split('\n')
+    n=0
+    allLog=''
+    for line in lines:
+        if line=='':continue
+        idDevice=line.split(',')[0]
+        data=line.split('(')[0].strip()
+        #data=','.join(data.split(',')[:8])+','+data.split(',')[9]+','+data.split(',')[8]+','+','.join(data.split(',')[10:])
+        print(data)
+        allLog += '$S'+data+'$E\n'
+        n+=1
+        if n==100:
+            try:
+                saveAllLog(SaveURL,allLog,config)
+            except:
+                n=n
+            n=0
+            allLog=''
+    if n>0:
+        saveAllLog(SaveURL,allLog,config)
+
+def scrape_ISPRA_NF(config,folderConfig,killProcess=True):
+    #from CONF import folderConfig
+
+    from  process import readBuffer
+    from calcAlgorithm import calcAlgorithm as ca
+    folderOut=folderConfig +os.sep+'outTemp'
+    if not os.path.exists(folderOut):
+        os.makedirs(folderOut)
+
+#  1)  collect the data into the "samples" collection
+    URL=config['serverAddress'].split('|')[0]
+    location=config['serverAddress'].split('|')[1]
+    print('opening URL=',URL, location)
+    rows=requests.get(URL).text.split('\r\n')
+    row0=rows[0].split(';')
+    index={}
+    for j in range(len(row0)):
+        index[row0[j]]=j
+    print('file opened ',len(rows))
+    if len(rows)<4:
+        return
+    #
     
+    ncols=1
+
+#  2)  initialize the calculation algorithms
+    calg={}
+    for j in range(ncols):
+        buffer=readBuffer(folderConfig, int(config['n300']),j,True)
+        calg[j]=ca(j,folderConfig,config,buffer)
+        #calg[0]._LastDateTimeAcquired=datetime(2022,1,1)
+    kj=0
+    logData = ""
+    newData=False
+
+#  3)  add the sampled data beyond the last acquired data into "data"
+    data= []
+    for row in rows[1:]:
+        if row=='':  continue
+        try:
+            skip=False
+            value=row.split(';')[index[location]]
+        except Exception as e:
+            print(row)
+            value='NA'
+        if  value !='NA':
+            tiSt=row.split(';')[0]
+            tim=datetime.strptime(tiSt,'%Y-%m-%d %H:%M:%S')
+            try:
+                measure_Float = round(float(value)/100.,3)
+            except Exception as e:
+                print('*** error',e, row)
+            if tim > calg[0]._LastDateTimeAcquired:
+                #print(tim,measure_Float)
+                data.append((tim,(measure_Float)))
+
+#  4)  save the data or print them
+    if data !=[]:
+        saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
+    if killProcess:
+        os.kill(os.getpid(), 9)
+
+def scrape_OTT(config,folderConfig,killProcess=True):
+    from  process import readBuffer
+    from calcAlgorithm import calcAlgorithm as ca
+    folderOut=folderConfig
+    if not os.path.exists(folderOut):
+        os.makedirs(folderOut)
+    calg={};ncols=1
+    for j in range(ncols):
+        buffer=readBuffer(folderConfig, int(config['n300']),j,True)
+        calg[j]=ca(j,folderConfig,config,buffer)
+        #22/06/2022,17:51
+        #calg[0]._LastDateTimeAcquired=datetime(2022,6,22,17,51)
+        #calg[0]._LastDateTimeAcquired=datetime(2022,1,1)
+    kj=0
+    logData = ""
+    newData=False
+
+#  3)  add the sampled data beyond the last acquired data into "data"
+    data= []
+    folderData=config['OutFolder']
+    levcode=config['sensorCodeOTT']
+    battcode=config['batteryCodeOTT']
+    sensmult=float(config['sensorMultFac'])
+    sensorAddFac=float(config['sensorAddFac'])
+    n=-1
+    dir_list = os.listdir(folderData)
+    for f in dir_list:
+        #0000325686_20220706061925.MIS
+        #0123456789012345678901234
+        ts=f[11:25]
+        tim=datetime.strptime(ts,'%Y%m%d%H%M%S')
+        if tim>calg[0]._LastDateTimeAcquired:
+            with open(folderData+os.sep+f) as f:
+                testo=f.read()
+            for line in testo.split('\n'):
+                if line=='':continue
+                if '<STATION>' in line:
+                    n=-1
+                    code=line.split('<SENSOR>')[1].split('</SENSOR>')[0]
+                    if code==levcode:
+                        lev=True
+                    else:
+                        lev=False
+                else:
+                    n+=1
+                    p=line.split(';')
+                    ts=datetime.strptime(p[0]+p[1],'%Y%m%d%H%M%S')
+                    if lev: 
+                        measured_level=round(float(p[2]) *sensmult+sensorAddFac,3)
+                        #data[n]['ts']=ts
+                        #data[n]['level']=measured_level
+                        data.append((ts,(measured_level)))
+                        print(ts,measured_level)
+                    else: 
+                        battValue=float(p[2]) 
+                        #data[n]['batt']=battValue
+    if data !=[]:
+        saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
+    if killProcess:
+        os.kill(os.getpid(), 9)
+            
+                
+
+def tsINC(timestamp):
+    import datetime
+    d=datetime.datetime(1970, 1, 1) + datetime.timedelta(milliseconds=timestamp)
+    return datetime.datetime(d.year+1900,d.month,d.day,d.hour,d.minute,d.second)
+
+def scrape_INCOIS(config,folderConfig,killProcess=True):
+    from  process import readBuffer
+    from calcAlgorithm import calcAlgorithm as ca
+    folderOut=folderConfig +os.sep+'outTemp'
+    
+
+    if not os.path.exists(folderOut):
+        os.makedirs(folderOut)
+
+#  1)  collect the data into the "samples" collection
+    URL=config['serverAddress']    
+    print('opening URL=',URL)
+    with requests.get(URL, verify=False) as resp:
+        json=resp.json()
+    
+    if json==[]:
+        return
+    indexCol=[]
+    values0={}
+    for n in range(len(json)):
+        d=json[n]
+        if d['name']=='PRS' or d['name']=='ENC' or d['name']=='RAD':
+            indexCol.append(n)
+            values0[n]=0
+    ncols=len(indexCol)
+
+#  2)  initialize the calculation algorithms
+    calg={}
+    for j in range(ncols):
+        buffer=readBuffer(folderConfig, int(config['n300']),j,True)
+        calg[j]=ca(j,folderConfig,config,buffer)
+        #22/06/2022,17:51
+        #calg[0]._LastDateTimeAcquired=datetime(2022,6,22,17,51)
+        #calg[0]._LastDateTimeAcquired=datetime(2022,1,1)
+    kj=0
+    logData = ""
+    newData=False
+
+#  3)  add the sampled data beyond the last acquired data into "data"
+    data= []
+    
+    for j in range(len(json[0]['data'])):
+        try: 
+            tim=tsINC(json[0]['data'][j][0])
+            if tim > calg[0]._LastDateTimeAcquired:
+                samp=[]
+                for i in indexCol:
+                    try:
+                        value=json[i]['data'][j][1]
+                        values0[i]=value
+                    except:
+                        value=values0[i]
+                    samp.append(value)
+                #print(tim,measure_Float)
+                data.append((tim,samp))
+        except Exception as e:
+            print(e)
+#  4)  save the data or print them
+    if data !=[]:
+        saveSamples(config,calg,data,ncols,folderConfig, folderOut)    
+    if killProcess:
+        os.kill(os.getpid(), 9)
 
 def multi_scrape(idThread,config,wgetData,listConfig):
     from  process import addMeasure
     from calcAlgorithm import calcAlgorithm as ca
+    t0=datetime.utcnow()
     print('****************************************************')
-    print('initiating '+idThread+' for ',len(listConfig),' stations')
+    print(t0.strftime('%Y-%m-%d %H:%M')+': initiating '+idThread+' for ',len(listConfig),' stations')
     print('****************************************************')
+    
     for j in range(len(listConfig)):
         dir=listConfig[j]
-        print('\n'+idThread,format(j)+'/'+format(len(listConfig))+':'+dir)
+        print('\n\n****************************************')
+        print(' Station: '+dir+ ' thread: '+format(idThread)+'  id:'+format(j)+'/'+format(len(listConfig)))
+        print(' -c '+dir)
+        print('****************************************\n\n')
         config=readConfig(dir)
+        #try:  
+        if True:
+            if config['scrapePage']=='BIG_INA':
+                scrape_BIG_INA(config,wgetData,folderOut)
+            elif config['scrapePage']=='NOAA':
+                scrape_NOAA(config,dir,False)
+
+            elif config['scrapePage']=='GLOSS':
+                scrape_GLOSS(config,dir, False)     
+
+            elif config['scrapePage']=='DART':
+                scrape_DART(config,dir, False)     
             
-        print(' Station: '+dir)
-        if config['scrapePage']=='BIG_INA':
-            scrape_BIG_INA(config,wgetData,folderOut)
-        elif config['scrapePage']=='NOAA':
-            scrape_NOAA(config,dir)
-        elif config['scrapePage']=='GLOSS':
-            scrape_GLOSS(config,dir)        
-        time.sleep(1)    
+            elif config['scrapePage']=='TR':
+                scrape_TR(config,dir,False)  
+            
+            elif config['scrapePage']=='ISPRA_NF':
+                scrape_ISPRA_NF(config,dir,False)  
+            
+            elif config['scrapePage']=='INCOIS':
+                scrape_INCOIS(config,dir,False)     
+       # except Exception as e:
+       #     print(e)
+       # time.sleep(1)    
+    t1=datetime.utcnow()
+    delta=int(((t1-t0).seconds)/60)
+    print('****************************************************')
+    print(t1.strftime('%Y-%m-%d %H:%M')+': end '+idThread+' for ',len(listConfig),' stations,  delta=',delta,'min')
+    print('****************************************************')
+
 
 
 if __name__ == "__main__":

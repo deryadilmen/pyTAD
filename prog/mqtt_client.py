@@ -99,14 +99,14 @@ def init_push(config,queueMQTT,adcData,folderOut):
 
      
 
-def init_listen(config,queueData,adcData,folderOut,proxy='',debug=False):   
+def init_listen(config,queueData,adcData,queueMQTT,folderOut,proxy='',debug=False):   
         while True:
             print('===============Starting linesting================')
-            listen_data(config,queueData,adcData,folderOut,'',debug)
+            listen_data(config,queueData,adcData,queueMQTT,folderOut,'',debug)
             time.sleep(1)
     
            
-def listen_data(config,queueData,adcData,folderOut,proxy='',debug=False):
+def listen_data(config,queueData,adcData,queueMQTT,folderOut,proxy='',debug=False):
         print ("---------------------------------------------------")
         print ("Starting MQTT listener")
         print ("opening ", config['MQTT_listener'],config['MQTT_msg'])
@@ -199,7 +199,8 @@ def listen_data(config,queueData,adcData,folderOut,proxy='',debug=False):
                     if model=='IDSL':
                         if len(p)>1: 
                             tt=datetime.strptime(p[indexNames['DATETIME']],'%Y-%m-%d %H:%M:%S.%f')
-                            queueData.append((tt,float(p[indexNames['LEV']])))
+                            lev=float(p[indexNames['LEV']])
+                            queueData.append((tt,lev))
                             adcData['batteryValue']=p[indexNames['BATT']]
                             adcData['tempValue']=p[indexNames['TEMP']]
                             adcData['tempCPU']=p[indexNames['CPUTEMP']]
@@ -233,6 +234,8 @@ def listen_data(config,queueData,adcData,folderOut,proxy='',debug=False):
                      
                 except Exception as e:
                     print(e)
+                if 'MQTT_AzureIOTHub_PUSH_conn_str' in config:
+                    queueMQTT.append((tt,lev))
            time.sleep(.2)
            
 
@@ -367,3 +370,55 @@ if __name__ == "__main__":
             time.sleep(1)
     elif arguments[0]=='LISTEN_PROXY':
         init_listen(config,queueData,adcData,folderOut,'proxy.JRC.it:8080',True)
+        
+#Installazione server MQTT (Mosquitto) su CentOS 7
+#https://www.systaskliwi.com/installazione-server-mqtt-mosquitto-su-centos-7/
+#DI SYSADMIN · PUBBLICATO 5 NOVEMBRE 2018 · AGGIORNATO 19 DICEMBRE 2018
+
+#In questo breve tutorial andremo a descrivere come installare il server di messaggistica Mosquitto 
+#( server MQTT) su macchina virtuale CentOS 7.
+#Consideriamo di partire da una macchina virtuale CentOS 7 (per l’installazione seguire 
+#questo articolo) ed aggiorniamola
+#   yum update
+
+#aggiungiamo  il repository epel
+#   yum install epel-release vim
+#installiamo il software Mosquitto
+#   yum install mosquitto
+
+#avviamo il server MQTT
+#   systemctl start mosquitto
+
+#abilitiamo l’avvio allo startup
+#   systemctl enable mosquitto
+
+#Adesso rendiamo sicuro il server MQTT vincolando la comunicazione tra Subscribers, Publishers e
+# Broker ad un determinato utente, nel nostro caso mqtt
+#   mosquitto_passwd -c /etc/mosquitto/passwd mqtt
+
+#modifichiamo il file di configurazione di Mosquitto per evitare di far scambiare in maniera 
+#anonima messaggi, impostando la metodologia di scambio tramite autenticazione, in particolare
+#   vim /etc/mosquitto/mosquitto.conf
+
+# allow_anonymous false
+# password_file /etc/mosquitto/passwd
+
+#riavviamo il demone di Mosquitto
+# systemctl enable mosquitto
+
+#Adesso simuliamo uno scambio di messaggi tra Subscribers e Publishers, apriamo due 
+# terminali che si connettono al server MQTT, nel primo eseguiamo il seguente comando 
+# (simulando il Subscriber)
+#    mosquitto_sub -h localhost -t primo_test -u "mqtt" -P "password_scelta"
+
+#mentre nell’altro terminale simuliamo il Publisher, ed  effettuiamo un test di connessione
+#mosquitto_pub -h localhost -t "primo_test" -m "Primo Messaggio" -u "mqtt" -P "password_scelta"
+#avremo che il Broker (server MQTT) permetterà lo scambio di messaggi, ed avremo dal lato Subscribers il seguente risultato
+#[root@localhost log]# mosquitto_sub -h localhost -t primo_test -u “mqtt” -P “password_scelta”
+#Primo Messaggio
+#nel caso avessi tentato di utilizzare per lo scambio di messaggi un utente non aggiunto 
+#all’interno del nostro elenco ( è possibile verificarli nel file passwd ), ad esempio
+#   mosquitto_sub -h localhost -t "secondo_test" -u  "mqtt2" - P "altra_password"
+
+#avremo avuto il seguente errore
+#  Connection Refused: not authorised.        

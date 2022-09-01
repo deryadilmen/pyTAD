@@ -242,7 +242,7 @@ def average0(y,i1,i2):
     av /=(i2-i1+1)
     return av
 
-def readBuffer(folderOut,max300,kk=''):
+def readBuffer(folderOut,max300,kk='',Force=False):
     # read buffer.txt 
     x300=[0.0]*(max300+1)
     y300=[0.0]*(max300+1)
@@ -261,10 +261,11 @@ def readBuffer(folderOut,max300,kk=''):
             index300,index1=(int(x) for x in rows[0].split(','))
             lastts=rows[-2].split(',')[0]
             delta=(t0-datetime.strptime(lastts,'%Y-%m-%d %H:%M:%S')).total_seconds()/60.
+            print('deltaTime min buffer',delta, 'last datetime',format(datetime.strptime(lastts,'%Y-%m-%d %H:%M:%S')))
         except:
-            delta=1e6
-        print('deltaTime min buffer',delta)
-        if index300==max300+1 and len(rows)>=max300+1 and delta<60:
+            delta=1e6       
+        
+        if index300==max300+1 and len(rows)>=max300+1 and (delta<60 or Force):
             try:
                 for i in range(1,index300):
                     y300[i],yavg30[i],yavg300[i]=(float(x) for x in rows[i].split(',')[1:])
@@ -282,7 +283,7 @@ def readBuffer(folderOut,max300,kk=''):
            index300=0
            index1=0
     else:
-        print('file not existing ',folderOut+'/buffer.txt')
+        print('file not existing ',folderOut+ os.sep +"buffer" + suffix + ".txt")
         index300=0
         index1=0
     return index300,index1,x300,y300,yavg30,yavg300

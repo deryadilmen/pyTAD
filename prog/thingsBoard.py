@@ -38,6 +38,7 @@ def getTokenRead(dev,deviceID,ts1,et1,username,pwd,keys,folderOut):
     if os.path.exists(folderOut+os.sep+'out.txt'):
         with open(folderOut+os.sep+'out.txt') as f:
             testo = f.read()
+        #print(testo)
         os.remove(folderOut+os.sep+'out.txt')
         if "has expired" in testo:
             if os.path.exists(folderOut+os.sep+"token" + dev + ".txt"):
@@ -115,10 +116,10 @@ def scrapeTB(config,wgetData,folderOut):
         ts1=format(int(bias*1000+time.mktime(startTime.timetuple())*1000))
         et10=format(int(time.mktime(endTime.timetuple())*1000))
         et1=format(int(bias*1000+time.mktime(endTime.timetuple())*1000))
-        #print(startTime,endTime,ts1,et1,et10)
+        print(startTime,endTime,ts1,et1,et10)
           
         testo=getTokenRead(dev,deviceID,ts1,et1,username,pwd,keys,folderOut)
-        
+        #print(' -aa-',testo)
         if not (testo=='' or testo==None):
             testo1=getTokenRead(dev,deviceID,-1,-1,username,pwd,keys,folderOut)
             testo=testo1

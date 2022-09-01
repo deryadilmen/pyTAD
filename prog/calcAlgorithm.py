@@ -2,6 +2,8 @@ from readConfig import *
 from process import solve2,addpoint,addpoint1,rootMeanSquare
 import datetime
 import math,random
+import redis
+import json, requests
 
 class calcAlgorithm(object):
     """description of class"""
@@ -72,6 +74,7 @@ class calcAlgorithm(object):
                 delta=1e6
                 self._index300=0
             if self.debug: print('deltaTime min buffer (h)',delta)
+            print('deltaTime min buffer',delta, 'last datetime',format(datetime.strptime(lastts,'%Y-%m-%d %H:%M:%S')))
             if self._index300==max300+1 and len(rows)>=max300+1 and delta<2*24:
                 try:
                     for i in range(1,self._index300):
@@ -181,6 +184,54 @@ class calcAlgorithm(object):
         #self.saveBuffer(folderOut,kk)
     
         return forecast30,forecast300,rms,alertSignal,self._alertValue
+ 
+    def sendREDIS(self,config,dict,r=None):
+
+        if r==None:
+          passwd = config['REDISpassword']  #'+NsJ9U13XJGPUyhWSBP8lx2p7aR4Mz2Nzb9PuPcSJ3c='
+          #redisServer='ecml-rio.redis.cache.windows.net'
+          redisServer=config['REDISserver']  #51.137.96.149'
+          
+          for key in dict.keys():
+              if key !='Timestamp' and key != 'DeviceId':
+                dict[key]=float(dict[key])
+          r = redis.Redis(host=redisServer, port=6380, db=0,ssl=True,password=passwd)
+        #resp=r.publish('Telemetry-Channel', json.dumps(dict))
+        URL='https://webcritech.jrc.ec.europa.eu/tad_server/api/Data/PostAsync'
+        print (json.dumps(dict))
+        if not 'FeatureId' in dict:
+            dict['FeatureId']=''
+        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+        x = requests.post(URL, data=json.dumps(dict), headers=headers)
+        print('resp=',x.text)
+        return r,x.text
+
+    def prepareREDIS(self,dict,k,config, tt, avg,fore30,fore300,rms,alertSignal,alertValue, log0,  press = 0,  temp = 0,  batt = 0):
+          suffix = "_" +format(k+1)
+
+          try:
+              
+              list=config['REDISsave']
+              fields=list.split(',')
+              
+              for f in fields:
+                  if f=='': continue
+                  key,value=f.split(":")
+                  #print(key,value)
+                  if '$LEV'+suffix in value: value=value.replace('$LEV'+suffix,format(avg));dict[key]=value
+                  if '$FORE300'+suffix in value: value=value.replace('$FORE300'+suffix,format(fore300));dict[key]=value
+                  if '$FORE30'+suffix in value:value=value.replace('$FORE30'+suffix,format(fore30));dict[key]=value
+                  if '$RMS'+suffix in value: value=value.replace('$RMS'+suffix,format(rms));dict[key]=value
+                  if '$ALERT_LEVEL'+suffix in value: value=value.replace('$ALERT_LEVEL'+suffix,format(alertSignal));dict[key]=value
+                  if '$ALERT_SIGNAL'+suffix in value: value=value.replace('$ALERT_SIGNAL'+suffix,format(alertValue));dict[key]=value
+                  if '$TIMESTAMP'  in value: value=value.replace('$TIMESTAMP',format(tt,'%Y-%m-%dT%H:%M:%SZ'));dict[key]=value
+                  if '$IDdevice'  in value: value=value.replace('$IDdevice',config['IDdevice']);dict[key]=value
+                  if 'FeaturId' in key: dict[key]=value
+                  #dict[key]=value
+              return dict              
+          except Exception as e:
+            print('error in redis connection')
+            print(e)
 
     def prepareString(self,k,config, ora1, avg,fore30,fore300,rms,alertSignal,alertValue, log0,  press = 0,  temp = 0,  batt = 0):
         if log0 == "":

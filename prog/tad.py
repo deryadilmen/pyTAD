@@ -17,6 +17,7 @@
 # sudo pip3 install pybind11
 # sudo pip3 install numpy  --upgrade
 # sudo pip3 install psutil
+# sudo pip install pycountry-convert
 
 #  TODO:
 #  
@@ -63,6 +64,7 @@ if config['MQTT_listener'] !='' or config['MQTT_server']!='':
 processes=[]
 procScrapMulti=[]
 is_raspberry=is_raspberrypi()
+t1a=None
 
 print ('---------------- start of config-----------------\n\n')
 for i in config:
@@ -100,6 +102,7 @@ elif config['scrapePage'] !='' and len(listConfigs)==0:
         import thingsBoard as tb
         t1a = threading.Thread(target=tb.scrapeTB, args=(config,wgetData,folderOut))
         processes.append((t1a, 'scrapeTB'))
+        t1a.start()
     elif config['scrapePage']=='BIG_ID_INA':
         import scrape as sc
         t1a = threading.Thread(target=sc.scrape_BIG_INA, args=(config,wgetData,folderOut))
@@ -108,11 +111,43 @@ elif config['scrapePage'] !='' and len(listConfigs)==0:
         import scrape as sc
         t1a = threading.Thread(target=sc.scrape_GLOSS, args=(config,folderOut))
         processes.append((t1a, 'scrape GLOSS'))
+        t1a.start()
+    elif config['scrapePage']=='DART':
+        import scrape as sc
+        t1a = threading.Thread(target=sc.scrape_DART, args=(config,folderOut))
+        processes.append((t1a, 'scrape DART'))
+        t1a.start()
+
+    elif config['scrapePage']=='TR':
+        import scrape as sc
+        t1a = threading.Thread(target=sc.scrape_TR, args=(config,folderOut))
+        processes.append((t1a, 'scrape TR'))
+        print('t1a isalive',t1a.is_alive())
+        t1a.start()
+    elif config['scrapePage']=='INCOIS':
+        import scrape as sc
+        t1a = threading.Thread(target=sc.scrape_INCOIS, args=(config,folderOut))
+        processes.append((t1a, 'scrape INCOIS'))
+        print('t1a isalive',t1a.is_alive())
+        t1a.start()
+    elif config['scrapePage']=='OTT_plane':
+        import scrape as sc
+        t1a = threading.Thread(target=sc.scrape_OTT, args=(config,folderOut))
+        processes.append((t1a, 'scrape OTT'))
+        print('t1a isalive',t1a.is_alive())
+        t1a.start()    
+    elif config['scrapePage']=='EXECLOG':
+        import scrape as sc
+        t1a = threading.Thread(target=sc.read_execLog_IDSL, args=(config,wgetData))
+        processes.append((t1a, 'scrape EXECLOG'))
+        print('t1a isalive',t1a.is_alive())
+        t1a.start()
 
     else:
         import scrape as sc
         t1a = threading.Thread(target=sc.scrape_init, args=(config,wgetData,folderOut))
         processes.append((t1a, 'scrape'))
+        t1a.start()
 elif config['scrapePage'] !='' and len(listConfigs)!=0:
         import scrape as sc
         for j in range(len(listConfigs)):
@@ -125,7 +160,7 @@ elif config['scrapePage'] !='' and len(listConfigs)!=0:
 
 elif config['MQTT_listener'] !='':
     print('definisco t1a')
-    t1a =threading.Thread(target=mq.init_listen, args=(config,queueData,adcData,folderOut))
+    t1a =threading.Thread(target=mq.init_listen, args=(config,queueData,adcData,queueMQTT,folderOut))
     #t1a.start()
     processes.append((t1a, 'ReadAll mqtt listen'))
 
@@ -136,6 +171,21 @@ elif config['TCP_host'] !='':
     #t1a.start()
     processes.append((t1aM, 'Listen TCP port'))
     t1aM.start()
+
+if 'MQTT_AzureIOTHub_PUSH_conn_str' in config:
+    import mqtt_azure as ma
+    
+    taz =threading.Thread(target=ma.init_push, args=(config,queueMQTT,adcData,folderOut))
+  
+    processes.append((taz, 'MQTT Azure push'))
+    taz.start()
+if 'MQTT_AzureIOTHub_LISTEN_conn_str' in config:
+    import mqtt_azure as ma
+    
+    taL =threading.Thread(target=ma.Azure_Listen, args=(config,queueData,adcData,queueMQTT,folderOut))
+  
+    processes.append((taL, 'MQTT Azure listen'))
+    taL.start()   
 
 if config['scrapePage']=='':
     t2 = threading.Thread(target=pr.process5Sec, args=(config,queueData,adcData,wgetData,folderOut,queueMQTT))
@@ -163,10 +213,12 @@ for t,desc in processes:
  
 if 'Serial' in config: 
     t1.start()
-    
-if len(listConfigs)==0 and config['TCP_host']+config['scrapePage']+config['Tail']+config['TailSimple']+config['ReadFile']+ config['MQTT_listener'] !='':
-    print('starting t1a')
-    t1a.start()
+
+if not t1a==None : #.is_alive():    
+    if not t1a.is_alive():    
+        if len(listConfigs)==0 and config['scrapePage']+config['Tail']+config['TailSimple']+config['ReadFile']+ config['MQTT_listener'] !='':
+            print('starting t1a ',t1a.is_alive())
+            t1a.start()
 
 if config['scrapePage']=='':    
     t2.start()   #Process5s

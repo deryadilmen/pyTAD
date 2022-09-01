@@ -60,15 +60,20 @@ for j in range(len(arguments)-1):
         with open(folderSettings+os.sep+'listLocations.txt') as f:
             list=f.read().split('\n')
         listConfigs0=[]
-        for r in list[4:]:
+        for r in list:
+            if r.startswith('#') or r.startswith('$') or r.startswith('*'):
+                continue
             if r !='':
-                listConfigs0.append(folderSettings+os.sep+r.split('\t')[5])
+                
                 if len(listConfigs0)>=NmaxProcs:
                     listConfigs.append(listConfigs0)
                     listConfigs0=[]
+                #if 'magi' in r:
+                listConfigs0.append(folderSettings+os.sep+r.split('\t')[5])
         if len(listConfigs0)>0:
             listConfigs.append(listConfigs0)
-        folderConfig=listConfigs[0][0]
+        if len(listConfigs)>0:
+            folderConfig=listConfigs[0][0]
 if not os.path.exists(folderConfig):
     print('Configuration folder does not exists:'+folderConfig)
     os.kill(os.getpid(), 9)
@@ -99,6 +104,8 @@ else:
 
 if 'folderOut' in config:
     folderOut=config['folderOut']
+else:
+    folderOut=folderConfig+os.sep+'out'
 
 if not os.path.exists(folderOut):
     os.makedirs(folderOut)
