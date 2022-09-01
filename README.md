@@ -66,7 +66,7 @@ The output will be in the form of a list of data analysed applying the detection
   So to analyse this you should call:
   
 <code>
-  python3 scrape.py -code  9435380  -n300 100  -n30 20  -mult 4  -add 0.1  -th 0.08 -mode NOAA  -out /temp/Charleston
+  python3 scrape.py -code  9435380  -n300 100  -n30 20  -mult 4  -add 0.1  -th 0.08 -mode NOAA  -out /tmp/Charleston
 </code>
   
   ![image](https://user-images.githubusercontent.com/10267112/172599427-39374fb1-7caf-487c-832d-21520faf8996.png)
