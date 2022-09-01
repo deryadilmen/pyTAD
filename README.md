@@ -35,7 +35,7 @@ To test the calculation procedure you can use the following command:
     <tr><td>-add</td><td>is the adding quantity to the rms</td></tr>    
     <tr><td>-th</td><td>threshold  to be overpassed</td></tr>    
     <tr><td>-mode</td><td>type of sea level netwrok  (GLOSS/NOAA, BIG_INA...)</td></tr>        
-    <tr><td>-outtd><td>optional and indicates where to write the output</td></tr>            
+    <tr><td>-out</td>d<td>optional and indicates where to write the output</td></tr>            
   </table>
   
 The output will be in the form of a list of data analysed applying the detection algorithm.  If the command is repeated, only the new data will be considered from the last time the command was run.  The response is the following 
