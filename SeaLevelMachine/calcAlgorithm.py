@@ -46,11 +46,12 @@ class calcAlgorithm(object):
             self._y300=[0.0]*(self._n300+1)
             self._yavg30=[0.0]*(self._n300+1)
             self._yavg300=[0.0]*(self._n300+1)
+            self._diffe=[0.0]*(self._n300+1)
             self._index1=0
         else: 
             self._index300,self._index1,self._x300,self._y300,self._yavg30,self._yavg300=buffer
         if self._index1==0:
-            self._LastDateTimeAcquired = datetime.datetime.utcnow()-datetime.timedelta(seconds=24*3600)
+            self._LastDateTimeAcquired = datetime.datetime.utcnow()-datetime.timedelta(seconds=24*3600*2)
         else:
             self._LastDateTimeAcquired = self._x300[self._index300-1]        
         
@@ -179,7 +180,7 @@ class calcAlgorithm(object):
         else:
             alertSignal = 0.0
 
-        if (alertSignal>self._ratioRMS*rms and alertSignal>self._threshold):
+        if (alertSignal>self._ratioRMS*rms+self._AddRMS  and alertSignal>self._threshold):
                 if (self._alertValue<10):
                     self._alertValue += 1;
         else:
@@ -205,12 +206,12 @@ class calcAlgorithm(object):
           r = redis.Redis(host=redisServer, port=6380, db=0,ssl=True,password=passwd)
         #resp=r.publish('Telemetry-Channel', json.dumps(dict))
         URL='https://webcritech.jrc.ec.europa.eu/tad_server/api/Data/PostAsync'
-        print (json.dumps(dict))
+        #print (json.dumps(dict))
         if not 'FeatureId' in dict:
             dict['FeatureId']=''
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         x = requests.post(URL, data=json.dumps(dict), headers=headers)
-        print('resp=',x.text)
+        #print('resp=',x.text)
         return r,x.text
 
     def prepareREDIS(self,dict,k,config, tt, avg,fore30,fore300,rms,alertSignal,alertValue, log0,  press = 0,  temp = 0,  batt = 0):
