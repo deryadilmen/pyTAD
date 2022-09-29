@@ -53,10 +53,10 @@ In order to do that, you need to click 5 times on a curve
 The results is the following, displayed on the screen:
 
 - Arrival Time: **2022-09-19 18:29:0** 
-- Amplitude (half trough to crest): **0.8 m**
-- Max Amplitude (max between trough and crest minus tide): 0.9 m
-- Through to Crest:1.7 m, 
-- Period: **32.0 min**
+- Amplitude: **0.8 m** *(half trough to crest)*
+- Max Amplitude: 0.9 m  *(max between trough and crest minus tide)*
+- Through to Crest: 1.7 m 
+- Period: **32 min**
 
 the data in bold are generally the relevant data to be used by Tsunami Service providers. The other information are for statistical purpose. Just for curiosity the official values provided for this sensor by PTWC,  Tsunami Service Provider for this zone, were
 
