@@ -42,7 +42,7 @@ Once you show a level signal, it is possible to easily identify the parameters t
 - Wave Period (minutes)
 
 In order to do that, you need to click 5 times on a curve
-![Uploading image.png…]()
+![points](https://user-images.githubusercontent.com/10267112/193129667-befa8911-9664-412b-a089-dce9c294033e.jpg)
 
 - click #1 to identify the **Arrival time**
 - click #2 on a zero at the start of a cycle corresponding to the largest cycle
