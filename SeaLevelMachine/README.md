@@ -53,11 +53,18 @@ In order to do that, you need to click 5 times on a curve
 The results is the following, displayed on the screen:
 
 - Arrival Time: **2022-09-19 18:29:0** 
-- Amplitude (half trough to crest): **0.8 m **
+- Amplitude (half trough to crest): **0.8 m**
 - Max Amplitude (max between trough and crest minus tide): 0.9 m
 - Through to Crest:1.7 m, 
 - Period: **32.0 min**
 
-the data in bold are generally the relevant data to be used by Tsunami Service providers. The other information are for statistical purpose.
-</code>
+the data in bold are generally the relevant data to be used by Tsunami Service providers. The other information are for statistical purpose. Just for curiosity the official values provided for this sensor by PTWC,  Tsunami Service Provider for this zone, were
+
+-Arrival Time: 19:24  
+-Amplitude: 0.79 m
+-Period: 32 min
+
+So a part the Arrival time as they used the second peak instead of the first small one one, Amplitude and period were highly consistent.
+
+In principle through experts analysis of each of the identified signals, these information could be stored in a database and presented together with the other for events that have the GTS messages associated. 
 
