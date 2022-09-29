@@ -33,4 +33,31 @@ It is not sure that a Tsunami is visible at these tide gauges. However the syste
 For example,  selecting the Honshu event of Japan, 2011,  for which no GTS was available, the system shows several red dots  and in the list they are identified as *DETECTED* for signals that have tested positive to the Tsunami dtection model.
 ![image](https://user-images.githubusercontent.com/10267112/193124250-82bfc1b6-dcc4-4b03-b884-4c8b523faf65.png)
 
+In this case a filter section allows to establish the maximum distance to search events, the database name to use or a search keyowrd to find a specific tide gauge.
+
+### Determination of Tsunami paramenets
+Once you show a level signal, it is possible to easily identify the parameters that characterize a measurement point, that are:
+- Arrival time
+- Maximum Amplitude (m)
+- Wave Period (minutes)
+
+In order to do that, you need to click 5 times on a curve
+![Uploading image.png…]()
+
+- click #1 to identify the **Arrival time**
+- click #2 on a zero at the start of a cycle corresponding to the largest cycle
+- click #3 on a maximum (or a minimum) of the same cycle
+- click #4 on a minimum (or a naximum) of the same cycle
+- click #5 on a zero at the end of the same cycle
+
+The results is the following, displayed on the screen:
+
+- Arrival Time: **2022-09-19 18:29:0** 
+- Amplitude (half trough to crest): **0.8 m **
+- Max Amplitude (max between trough and crest minus tide): 0.9 m
+- Through to Crest:1.7 m, 
+- Period: **32.0 min**
+
+the data in bold are generally the relevant data to be used by Tsunami Service providers. The other information are for statistical purpose.
+</code>
 
