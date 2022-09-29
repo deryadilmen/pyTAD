@@ -13,3 +13,13 @@ From the events that do not have GTS messages assciated,  we attempted to identi
 ![image](https://user-images.githubusercontent.com/10267112/193110688-b72dbb44-f395-4742-a388-67812352aee4.png)
 The figure above shows the map of all the events from 2000 to current date.  The list shows the events separated by year. A filter allows to make a selection based on Minimum Magnitide or Minimum measured height (reported in the GTS messages (see above),  the starting/ending year of the list or the presence or absence of GTS message.
 
+By clicking on one of the events a new page is loaded,  showing the characteriscs of the event and the list of measures present for each event, as deduced from al the GTS messages connected with that event.
+
+
+By clicking on one of the tide gauge,  if data are (still) available in any of the available databases,,  the behaviour of the sea level is presented, together with a number of additional curves obtained with the Tsunami detection  model.
+
+Another useful curve shown is also the power spectrum of the signal whcih allowd to understand which could be the best parameters to apply to the signal.
+
+A number of dropdown menu allows to modify the model arameters and by clicking the 'Get Data'button, it alows to donload and process the data according to the selected model. 
+
+![Uploading image.png…]()
