@@ -13,6 +13,7 @@ From the events that do not have GTS messages assciated,  we attempted to identi
 ![image](https://user-images.githubusercontent.com/10267112/193110688-b72dbb44-f395-4742-a388-67812352aee4.png)
 The figure above shows the map of all the events from 2000 to current date.  The list shows the events separated by year. A filter allows to make a selection based on Minimum Magnitide or Minimum measured height (reported in the GTS messages (see above),  the starting/ending year of the list or the presence or absence of GTS message.
 
+## When a GTS message is present for an event...
 By clicking on one of the events (for example Mexico Sept 2022), a new page is loaded,  showing the characteriscs of the event and the list of measures present for each event, as deduced from al the GTS messages connected with that event.
 ![image](https://user-images.githubusercontent.com/10267112/193122347-45cb4001-a702-4fbb-a7ce-516df0fe674b.png)
 
@@ -24,5 +25,12 @@ Another useful curve shown is also the power spectrum of the signal whcih allowd
 A number of dropdown menu allows to modify the model arameters and by clicking the 'Get Data'button, it alows to donload and process the data according to the selected model. It is possible to get a link that identify this signal with the selected parameters (or future reference)  or download the data with the specific button.
 ![image](https://user-images.githubusercontent.com/10267112/193121831-03a3aaed-2b9f-4801-b067-10e73846d87c.png)
 
+### In case a GTS message is not present ?
+For the events for which a GTS message is unavailable, was not collected or was difficult or impossible to extract its content or no measurement was present in that particualr GTS message,  it is still possible to visulize the sea levels of the gauges closby.  By default a distance is calculated as a function of the magnitude but it is possible to extend this distance using a filter  The system will show all the tide gauges according to the default or the selected distance. 
+
+It is not sure that a Tsunami is visible at these tide gauges. However the system will show, marking the with "DET.  # gauges: xx" showing how many tide gauges have a signal that showed an alert. This will facilitate the selection of a signal showing an event.  However still it is not 100% sure that a Tsunami is visible at that location because the alert could be due to a siganl spike that was not eliminated with the procedure.
+
+For example,  selecting the Honshu event of Japan, 2011,  for which no GTS was available, the system shows several red dots  and in the list they are identified as *DETECTED* for signals that have tested positive to the Tsunami dtection model.
+![image](https://user-images.githubusercontent.com/10267112/193124250-82bfc1b6-dcc4-4b03-b884-4c8b523faf65.png)
 
 
