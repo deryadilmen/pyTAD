@@ -35,7 +35,7 @@ For example,  selecting the Honshu event of Japan, 2011,  for which no GTS was a
 
 In this case a filter section allows to establish the maximum distance to search events, the database name to use or a search keyowrd to find a specific tide gauge.
 
-### Determination of Tsunami paramenets
+### Determination of Tsunami parameters
 Once you show a level signal, it is possible to easily identify the parameters that characterize a measurement point, that are:
 - Arrival time
 - Maximum Amplitude (m)
@@ -60,9 +60,9 @@ The results is the following, displayed on the screen:
 
 the data in bold are generally the relevant data to be used by Tsunami Service providers. The other information are for statistical purpose. Just for curiosity the official values provided for this sensor by PTWC,  Tsunami Service Provider for this zone, were
 
--Arrival Time: 19:24  
--Amplitude: 0.79 m
--Period: 32 min
+- Arrival Time: 19:24  
+- Amplitude: 0.79 m
+- Period: 32 min
 
 So a part the Arrival time as they used the second peak instead of the first small one one, Amplitude and period were highly consistent.
 
