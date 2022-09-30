@@ -42,7 +42,7 @@ Once you show a level signal, it is possible to easily identify the parameters t
 - Wave Period (minutes)
 
 In order to do that, you need to click 5 times on a curve
-![points](https://user-images.githubusercontent.com/10267112/193199602-8d194757-ffd3-4fc4-9774-3ac8fd64a20e.jpg)
+![points](https://user-images.githubusercontent.com/10267112/193201525-972f0e1e-8fb5-4d1c-b13c-ba76e3704e9a.jpg)
 
 - click #1 to identify the **Arrival time**
 - click #2 on a zero at the start of a cycle corresponding to the largest cycle
@@ -52,20 +52,16 @@ In order to do that, you need to click 5 times on a curve
 
 The results is the following, displayed on the screen:
 
-- Arrival Time: **2022-09-19 18:29:0** 
-- Time of Maximum: 2022-09-19 19:05
-- Amplitude: **0.8 m** *(half trough to crest)*
-- Max Amplitude: 0.9 m  *(max between trough and crest minus tide)*
+- Time of Maximum: **2022-09-19 19:05**
+- Amplitude: **0.9 m** *(half trough to crest)*
+- Period: **33 min**
+-Other info
+- Arrival Time:  2022-09-19 18:28:0
+- Max Amplitude: 1.0 m  *(max between trough and crest minus tide)*
 - Through to Crest: 1.7 m 
-- Period: **32 min**
+- 
 
-the data in bold are generally the relevant data to be used by Tsunami Service providers. The other information are for statistical purpose. Just for curiosity the official values provided for this sensor by PTWC,  Tsunami Service Provider for this zone, were
-
-- Arrival Time: 19:24  
-- Amplitude: 0.79 m
-- Period: 32 min
-
-So a part the time that in the GTS message do not correspond nether to the arrival time not to the time of maximum wave, Amplitude and period were highly consistent.
+the data in bold are generally the relevant data to be used by Tsunami Service providers. The other information are for statistical purpose. 
 
 In principle through experts analysis of each of the identified signals, these information could be stored in a database and presented together with the other for events that have the GTS messages associated. 
 
