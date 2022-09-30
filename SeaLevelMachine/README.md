@@ -64,7 +64,7 @@ the data in bold are generally the relevant data to be used by Tsunami Service p
 - Amplitude: 0.79 m
 - Period: 32 min
 
-So a part the Arrival time as they used the second peak instead of the first small one one, Amplitude and period were highly consistent.
+So a part the time that in the GTS message do not correspond nether to the arrival time not to the time of maximum wave, Amplitude and period were highly consistent.
 
 In principle through experts analysis of each of the identified signals, these information could be stored in a database and presented together with the other for events that have the GTS messages associated. 
 
